@@ -1,172 +1,349 @@
-#  Market Regime Detector
+# Market Regime Detector
 
-The **Market Regime Detector** is a Python project designed to identify and monitor **market regimes** (e.g., Risk-On, Risk-Off) using macro-financial data and unsupervised machine learning (**K-Means Clustering**).
+The **Market Regime Detector** is a Python framework to **identify, analyze, and act on market regimes** (e.g., Risk-On, Risk-Off) using macro‑financial features and unsupervised models.  
+It supports multiple algorithms and training modes out of the box:
 
-Its goal is to provide a robust tool to:
-- Classify the current market context in near real-time.
-- Analyze regime transitions and their duration.
-- Integrate regime detection into trading strategies or asset allocation models.
+- **Algorithms:** **K‑Means**, **Gaussian Mixture Models (GMM)**, **Hidden Markov Models (HMM)**.
+- **Training modes:** **Split** (fit once on train, label full sample) and **Rolling** (refit on a moving window for time‑adaptive regimes).
+
+Beyond clustering, the framework includes:
+
+- **Regime transition analysis:** transition matrices, stationary distributions, dwell‑time distributions, and stability KPIs.
+- **Early‑warning signals:** heuristics on rising Risk‑Off probability.
+- **Reporting & diagnostics:** model agreement matrices, per‑regime normalized price path composites, and a feature‑contribution explorer for cluster centers.
+- **Strategy hooks & backtesting:** simple allocation rules (e.g., Risk‑On → long SPX; Risk‑Off → cash/TLT), vectorized backtests with buy‑and‑hold benchmark, and performance reporting.
+
+**Goals**
+- Classify the current market context in near real time.
+- Measure regime stability and transition risks across models/splits.
+- Generate actionable allocation signals.
+- Benchmark regime‑aware strategies versus buy‑and‑hold.
+
+
 
 ---
 
-##  Motivation
+## Motivation
 
-Markets don’t move randomly — they transition through **distinct phases** driven by macroeconomic conditions, monetary policy, and investor sentiment.  
-Identifying the current regime is essential for:
-- Adjusting **position sizing**.
-- Selecting the most suitable asset classes and sectors.
-- Avoiding large drawdowns during high-risk phases.
+Markets evolve through **distinct phases** shaped by macroeconomic conditions, monetary policy, and investor sentiment — they are not random walks.  
+Identifying the current regime provides an edge for traders, portfolio managers, and researchers by enabling them to:
+
+- Adjust **position sizing** and risk exposure dynamically.
+- Select the most suitable asset classes, sectors, or strategies.
+- Avoid significant drawdowns during high-risk phases.
+- Capture upside in favorable market environments.
+
+With the extended framework, you can now:
+
+- **Choose your regime model:** K-Means, Gaussian Mixture Models (GMM), or Hidden Markov Models (HMM), in both split and rolling training modes.
+- **Quantify** regime stability, transition probabilities, and dwell-time distributions.
+- **Monitor** early-warning signals for deteriorating market conditions.
+- **Diagnose** and compare model outputs with agreement matrices, composites, and feature contribution analysis.
+- **Implement** simple allocation rules and **backtest** them against benchmarks in a vectorized, fast workflow.
+
 
 ### Main regimes in the current model
-The K-Means model currently identifies 3 main clusters:
+
+The framework supports multiple algorithms — **K-Means**, **Gaussian Mixture Models (GMM)**, and **Hidden Markov Models (HMM)** — each capable of discovering market regimes from macro-financial features.  
+The examples below come from the default **K-Means** configuration with three regimes, but results will vary depending on:
+
+- The chosen algorithm and its hyperparameters.
+- The training mode (**split** vs **rolling**).
+- The feature set and preprocessing steps.
+
+**Example with 3 regimes (K-Means default):**
+
 1. **Risk-Off**  
-   - Negative SPX returns, high volatility, elevated VIX.
+   - Negative SPX returns, high volatility, elevated VIX.  
    - Typical of crises, sell-offs, and aggressive monetary tightening.
+
 2. **Risk-On (Steepening)**  
-   - Rising equities, low volatility, positively sloped 10y–2y yield curve.
+   - Rising equities, low volatility, positively sloped 10y–2y yield curve.  
    - Typical of early-cycle recoveries after recessions.
+
 3. **Risk-On (Inverted Curve)**  
-   - Rising equities, low volatility, inverted 10y–2y yield curve.
+   - Rising equities, low volatility, inverted 10y–2y yield curve.  
    - Typical of late-cycle rallies under restrictive monetary policy.
+
+> Regime definitions are **model-dependent** — switching to GMM or HMM, or changing the number of clusters/states, will change the regime set and interpretation.
+
 
 ---
 
-##  Project Structure
+## Project Structure
 
 ```plaintext
 market_regime_detector/
 │
 ├── data/
-│   ├── raw/               # Raw data downloaded from Yahoo Finance / FRED
-│   ├── processed/         # Cleaned, merged market panel and features
-│   └── external/          # Additional optional datasets
+│   ├── raw/                     # Raw data from Yahoo Finance, FRED, or other providers
+│   ├── processed/               # Cleaned, merged datasets and feature panels
+│   └── external/                 # Optional datasets (e.g., credit spreads, FX indices)
 │
-├── notebooks/             # Exploratory analysis & prototyping
+├── notebooks/                   # Exploratory analysis & prototyping
 │
-├── scripts/               # CLI scripts
-│   ├── fetch_data.py      # Download and merge data from Yahoo & FRED
-│   ├── build_features.py  # Compute features (returns, volatility, slope, momentum)
-│   ├── run_kmeans.py      # Run K-Means clustering and assign regimes
-│   ├── plot_regimes.py    # Visualize price series with regime coloring
-│   ├── export_regimes.py  # Export full regimes dataset to CSV
-│   └── export_regime_transitions.py # Export regime change dates only
+├── scripts/                     # CLI scripts for each major pipeline step
+│   ├── fetch_data.py             # Download and merge data from Yahoo & FRED
+│   ├── build_features.py         # Compute features (returns, volatility, slope, momentum)
+│   ├── run_kmeans.py             # Run K-Means clustering
+│   ├── run_kmeans_split.py       # K-Means split mode
+│   ├── run_kmeans_rolling.py     # K-Means rolling mode
+│   ├── run_gmm_split.py          # GMM split mode
+│   ├── run_gmm_rolling.py        # GMM rolling mode
+│   ├── run_hmm_split.py          # HMM split mode
+│   ├── run_hmm_rolling.py        # HMM rolling mode
+│   ├── plot_regimes.py           # Visualize price series with regime coloring
+│   ├── export_regimes.py         # Export full regimes dataset to CSV
+│   ├── export_regime_transitions.py # Export regime change dates only
+│   ├── run_transition_kpis.py    # Compute transition matrix, stationary dist, dwell-time KPIs
+│   ├── run_early_warning.py      # Generate early-warning signals from Risk-Off probability
+│   ├── run_agreement.py          # Compare model outputs (agreement matrices, Jaccard index)
+│   ├── run_composites.py         # Build per-regime normalized price path composites
+│   ├── run_center_explorer.py    # Inspect cluster centers & feature contributions
+│   └── run_allocation_backtest.py# Regime-based allocation backtest and performance report
 │
 ├── src/
-│   ├── config.py          # Global path and folder configuration
-│   ├── data/
-│   │   ├── yahoo.py       # Yahoo Finance data fetching
-│   │   ├── fred.py        # FRED macro data fetching
-│   │   ├── utils.py       # Utilities for merging and validation
-│   │   └── ingest.py      # Data ingestion and merging pipeline
-│   ├── features/          # Feature engineering
+│   ├── config.py                 # Global configuration
+│   ├── data/                     # Data ingestion modules
+│   │   ├── yahoo.py
+│   │   ├── fred.py
+│   │   ├── utils.py
+│   │   └── ingest.py
+│   ├── features/                 # Feature engineering
 │   │   └── features.py
-│   ├── models/
-│   │   └── kmeans.py      # Clustering and labeling logic
-│   └── viz/
-│       └── plots.py       # Visualization utilities
+│   ├── models/                   # Model implementations
+│   │   ├── kmeans.py
+│   │   ├── kmeans_split.py
+│   │   ├── kmeans_rolling.py
+│   │   ├── gmm_split.py
+│   │   ├── gmm_rolling.py
+│   │   ├── hmm_split.py
+│   │   └── hmm_rolling.py
+│   ├── regime/                   # Regime transition & stability analysis
+│   │   ├── transition.py
+│   │   └── stability.py
+│   ├── alerts/                   # Early-warning signal generation
+│   │   └── early_warning.py
+│   ├── reporting/                # Reporting & diagnostics
+│   │   ├── agreement.py
+│   │   ├── composites.py
+│   │   ├── centers.py
+│   │   └── performance.py
+│   ├── backtest/                 # Vectorized backtesting
+│   │   └── vectorized.py
+│   ├── strategy/                 # Allocation rules & hooks
+│   │   └── hooks.py
+│   └── viz/                      # Visualization utilities
+│       └── plots.py
 │
 └── README.md
 ```
 
+
+---
+
 ## End-to-End Workflow
 
-### Fetch market and macro data  
-Download historical series from:  
-- **Yahoo Finance**: SPX (^GSPC), VIX (^VIX), TLT.  
-- **FRED**: DGS10 (US 10Y), DGS2 (US 2Y).  
+The framework can be run entirely from the CLI scripts or via `make` targets.  
+It supports **K-Means**, **GMM**, and **HMM** models in both **split** and **rolling** modes.
+
+---
+
+### 1. Fetch Market and Macro Data
+Download historical series from:
+- **Yahoo Finance**: SPX (^GSPC), VIX (^VIX), TLT.
+- **FRED**: DGS10 (US 10Y), DGS2 (US 2Y).
 
 ```bash
 python scripts/fetch_data.py
+# or
+make fetch-data
 ```
 
 ---
 
-### Feature Engineering  
-Compute derived indicators:  
-- SPX 1d and 5d returns.  
-- 20-day rolling volatility.  
-- VIX level.  
-- 10y–2y yield curve slope.  
-- 20-day momentum of TLT.  
+### 2. Feature Engineering
+Compute derived indicators such as:
+- SPX 1d and 5d returns.
+- 20-day rolling volatility.
+- VIX level.
+- 10y–2y yield curve slope.
+- 20-day momentum of TLT.
 
 ```bash
 python scripts/build_features.py
+# or
+make build-features
 ```
 
 ---
 
-### K-Means Clustering  
-Segment the dataset into clusters (market regimes).  
+### 3. Choose and Run a Clustering Model
+Select algorithm and training mode:
 
+**K-Means:**
 ```bash
-python scripts/run_kmeans.py
+python scripts/run_kmeans_split.py --in data/processed/panel.parquet --out reports/labels_kmeans_split.csv --n_clusters 3
+python scripts/run_kmeans_rolling.py --in data/processed/panel.parquet --out reports/labels_kmeans_roll.csv --n_clusters 3
+```
+
+**GMM:**
+```bash
+python scripts/run_gmm_split.py --in data/processed/panel.parquet --out reports/labels_gmm_split.csv --n_clusters 3
+python scripts/run_gmm_rolling.py --in data/processed/panel.parquet --out reports/labels_gmm_roll.csv --n_clusters 3
+```
+
+**HMM:**
+```bash
+python scripts/run_hmm_split.py --in data/processed/panel.parquet --out reports/labels_hmm_split.csv --n_states 3
+python scripts/run_hmm_rolling.py --in data/processed/panel.parquet --out reports/labels_hmm_roll.csv --n_states 3
 ```
 
 ---
 
-### Visualization  
-Plot SPX with regimes colored according to clustering.  
+### 4. Transition & Stability KPIs
+Compute:
+- Transition matrix.
+- Stationary distribution.
+- Dwell-time statistics.
+- Stability metrics across splits/models.
 
 ```bash
-python scripts/plot_regimes.py
+python scripts/run_transition_kpis.py --labels_csv reports/labels_kmeans_split.csv --out_csv reports/transition_kpis.csv
+# or
+make transition-kpis LABELS="reports/labels_kmeans_split.csv" OUT=reports/transition_kpis.csv
 ```
 
 ---
 
-### Export Final Regimes Dataset  
+### 5. Early-Warning Signals
+Generate early-warning heuristics for rising Risk-Off probability.
 
-**Full dataset** (date, price, regime id, regime name):  
 ```bash
-python scripts/export_regimes.py
-```
-
-**Only regime change dates**:  
-```bash
-python scripts/export_regime_transitions.py
+python scripts/run_early_warning.py --prob_csv data/risk_off_prob.csv --out_csv reports/early_warning.csv
+# or
+make early-warning PROB=data/risk_off_prob.csv OUT=reports/early_warning.csv
 ```
 
 ---
 
-##  Data Sources
+### 6. Reporting & Diagnostics
+- **Agreement**: Compare regime labels between models/splits.
+- **Composites**: Build per-regime normalized price path composites.
+- **Center Explorer**: Inspect cluster centers and top contributing features.
 
-**Yahoo Finance** — Daily OHLC and adjusted close prices for:  
+```bash
+make agreement LABELS="reports/labels_kmeans_split.csv reports/labels_gmm_split.csv" NAMES="KMeans GMM" OUT=reports/agreement
+make composites PRICE=data/px.csv LABELS=reports/labels_kmeans_split.csv REGIME=0 OUT=reports/composite_r0.csv
+make center-explorer CENTERS=reports/kmeans_centers.csv FEATCOLS="ret_1d,vol_21d" OUT=reports/centers
+```
+
+---
+
+### 7. Strategy Hooks & Backtest
+Apply a simple allocation rule based on regimes and compare against a benchmark.
+
+```bash
+python scripts/run_allocation_backtest.py \
+  --prices_csv data/prices.csv --assets "SPX,TLT" --cash CASH \
+  --labels_csv reports/labels_kmeans_split.csv --risk_on 1 --risk_off 0 \
+  --on_weights "SPX:1.0" --off_weights "TLT:1.0" \
+  --benchmark SPX --out_prefix reports/alloc_simple
+# or
+make allocation-backtest PRICES=data/prices.csv ASSETS="SPX,TLT" LABELS=reports/labels_kmeans_split.csv \
+  RISK_ON=1 RISK_OFF=0 ON_W="SPX:1.0" OFF_W="TLT:1.0" BENCH=SPX OUT=reports/alloc_simple
+```
+
+---
+
+## Data Sources
+
+The framework is designed to work with freely available macro-financial datasets and can be extended to custom data providers.
+
+**Yahoo Finance** — Daily OHLC and adjusted close prices for:
 - S&P 500 Index (^GSPC)  
 - CBOE Volatility Index (^VIX)  
 - iShares 20+ Year Treasury Bond ETF (TLT)  
+- Any additional tickers specified in the configuration
 
-**FRED** (Federal Reserve Economic Data) — Daily macro series:  
+**FRED** (Federal Reserve Economic Data) — Daily macro series:
 - DGS10: 10-Year Treasury Constant Maturity Rate  
 - DGS2: 2-Year Treasury Constant Maturity Rate  
+- Optional: credit spreads (e.g., HYG–LQD), USD Index (DXY), MOVE Index
+
+**Custom / External Datasets** — Placed in `data/external/`:
+- Proprietary macro or market features
+- Alternative data (sentiment indices, commodity spreads, etc.)
+
+> All series are aligned to a unified trading calendar with forward-fill for macro data on non-trading days.
+
 
 ---
 
-##  Methodology
+## Methodology
+
+The Market Regime Detector follows a modular pipeline — from raw data ingestion to actionable allocation signals — supporting multiple algorithms (**K-Means**, **GMM**, **HMM**) and training modes (**split** and **rolling**).
+
+---
 
 ### Data Ingestion
-- Fetch and merge market + macro series on a unified trading calendar.  
-- Forward-fill missing macro values for non-trading days.  
+- Fetch and merge market + macro series on a unified trading calendar.
+- Forward-fill missing macro values for non-trading days.
+- Support for Yahoo Finance, FRED, and external custom datasets.
 
 ---
 
 ### Feature Engineering
-- Return, volatility, momentum, yield curve slope.  
-- Normalization using z-scores before clustering.  
+- Core features: returns, rolling volatility, momentum, yield curve slope.
+- Optional macro & alternative features: credit spreads, DXY, MOVE index.
+- Normalization using z-scores before clustering.
+- Flexible feature configuration for different model runs.
 
 ---
 
-### Unsupervised Clustering
-- **K-Means** with configurable `n_clusters` (default: 3).  
-- Cluster centers analyzed and mapped to human-readable regime names.  
+### Unsupervised Modeling
+- **K-Means**, **Gaussian Mixture Models (GMM)**, or **Hidden Markov Models (HMM)**.
+- Configurable number of regimes/clusters/states.
+- Two training modes:
+  - **Split:** Fit once on a training window and label the full dataset.
+  - **Rolling:** Refit on a moving window for time-adaptive regime detection.
 
 ---
 
-### Interpretation
-- Regime assignment based on market and macro conditions.  
-- *Risk-On* split into **Steepening** vs **Inverted** cycles.  
+### Regime Transition Mechanics
+- First-order Markov transition matrix estimation.
+- Stationary distribution and dwell-time distribution per regime.
+- Stability KPIs across splits/models (spectral gap, Frobenius dispersion).
 
 ---
 
-##  Example Output
+### Early-Warning Signals
+- Rolling probability metrics for Risk-Off regime.
+- Multi-trigger heuristics: MA level, z-score deviation, slope acceleration.
+- Cool-off logic to avoid clustered false positives.
+
+---
+
+### Reporting & Diagnostics
+- **Agreement analysis:** Confusion-like comparisons between model outputs.
+- **Price path composites:** Normalized per-regime composites around start dates.
+- **Feature contribution explorer:** Top contributing features per regime center.
+
+---
+
+### Strategy Hooks & Backtesting
+- Simple allocation rules mapping regimes to portfolio weights.
+- Vectorized backtest engine with turnover calculation.
+- Benchmark comparison (buy-and-hold).
+- Performance report including CAGR, volatility, Sharpe ratio, max drawdown, turnover, hit rate, and per-regime stats.
+ 
+
+---
+
+## Example Output
+
+### Regime Label Dataset
+Full dataset with assigned regimes and names:
 | date       | price   | regime | regime_name               |
 |------------|---------|--------|---------------------------|
 | 2015-01-26 | 2057.09 | 1      | Risk-On (Steepening)       |
@@ -175,14 +352,102 @@ python scripts/export_regime_transitions.py
 
 ---
 
-##  Potential Extensions
-- Add more macro features: credit spreads (HYG–LQD), DXY, MOVE index.  
-- Try other clustering algorithms (Gaussian Mixture Models, HMM).  
-- Integrate with trading systems for regime-aware allocation.  
-- Backtest performance of different strategies per regime.  
+### Transition Matrix
+Estimated from daily regime sequence (rows = from, cols = to):
+
+| from\to | 0     | 1     | 2     |
+|---------|-------|-------|-------|
+| 0       | 0.85  | 0.10  | 0.05  |
+| 1       | 0.08  | 0.86  | 0.06  |
+| 2       | 0.12  | 0.08  | 0.80  |
+
+**Stationary distribution:**  
+Regime 0: 32%, Regime 1: 45%, Regime 2: 23%
 
 ---
 
-##  License
+### Early-Warning Signals
+Rolling Risk-Off probability metrics and triggers:
+
+| date       | prob  | ma    | slope | zscore | trigger_prob | trigger_z | trigger_slope | warning |
+|------------|-------|-------|-------|--------|--------------|-----------|---------------|---------|
+| 2020-02-18 | 0.15  | 0.14  | 0.00  | -0.45  | 0            | 0         | 0             | 0       |
+| 2020-02-19 | 0.22  | 0.18  | 0.04  | -0.22  | 0            | 0         | 1             | 0       |
+| 2020-02-20 | 0.35  | 0.24  | 0.06  |  0.15  | 0            | 0         | 1             | 0       |
+| 2020-02-21 | 0.62  | 0.33  | 0.09  |  0.85  | 1            | 0         | 1             | 1       |
+
+---
+
+### Per-Regime Price Path Composite (SPX, normalized)
+Average normalized SPX path around regime start events (Risk-Off):
+
+| offset | mean   | median | p25    | p75    | n   |
+|--------|--------|--------|--------|--------|-----|
+| -5     |  0.004 |  0.003 | -0.002 |  0.009 |  15 |
+|  0     |  0.000 |  0.000 |  0.000 |  0.000 |  15 |
+|  5     | -0.012 | -0.010 | -0.020 | -0.004 |  15 |
+| 10     | -0.025 | -0.022 | -0.035 | -0.012 |  15 |
+
+---
+
+### Allocation Backtest Report
+**Portfolio vs Benchmark (SPX buy-and-hold)**
+
+**Portfolio metrics:**
+- CAGR: 8.7%
+- Volatility: 10.3%
+- Sharpe: 0.85
+- Max Drawdown: -12.4%
+- Turnover: 0.18
+
+**Benchmark metrics:**
+- CAGR: 7.5%
+- Volatility: 14.2%
+- Sharpe: 0.53
+- Max Drawdown: -33.9%
+
+**Hit rate by regime:**
+| regime | hit_rate | mean_ret  | n_obs |
+|--------|----------|-----------|-------|
+| 0      | 0.42     | -0.0003   | 250   |
+| 1      | 0.58     |  0.0005   | 400   |
+| 2      | 0.54     |  0.0004   | 320   |
+
+
+---
+
+## Potential Extensions
+
+With the current framework already supporting K-Means, GMM, HMM, transition analysis, early-warning signals, reporting, and regime-based backtesting, future development can focus on:
+
+- **Additional algorithms**:
+  - Spectral clustering, DBSCAN for non-linear regime boundaries.
+  - Bayesian HMMs with regime duration modeling.
+- **Feature expansion**:
+  - Global macro features (commodities, FX, global indices).
+  - Alternative data (news sentiment, liquidity metrics, options-implied signals).
+- **Live integration**:
+  - Streaming market data for near real-time regime updates.
+  - Direct integration with trading APIs for automated regime-aware allocation.
+- **Advanced backtesting**:
+  - Multi-asset allocation with optimization constraints.
+  - Transaction cost modeling and slippage simulation.
+  - Walk-forward optimization with multiple OOS splits.
+- **Visualization & dashboard**:
+  - Interactive dashboard (e.g., Streamlit) for exploring regimes, KPIs, and backtest results.
+- **Model monitoring**:
+  - Drift detection in feature distributions.
+  - Automatic alerts on regime probability shifts.
+ 
+
+---
+
+## License
+
 This project is released under the **MIT License**.
+
+You are free to use, modify, and distribute this software for any purpose, provided that the original copyright
+notice and this permission notice are included in all copies or substantial portions of the software.
+
+
 
