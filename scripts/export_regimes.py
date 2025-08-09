@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import PROC_DIR
+from src.config import PANEL_PARQUET, KMEANS_LABELS_PARQUET, PROC_DIR
 from src.viz.plots import load_labeled_features, load_price_series
 
 
@@ -18,13 +18,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--labels",
         type=Path,
-        default=PROC_DIR / "kmeans_labels.parquet",
+        default=str(KMEANS_LABELS_PARQUET),
         help="Path to labeled features parquet.",
     )
     p.add_argument(
         "--panel",
         type=Path,
-        default=PROC_DIR / "market_panel.parquet",
+        default=str(PANEL_PARQUET),
         help="Path to processed market panel parquet.",
     )
     p.add_argument(
@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--out",
         type=Path,
-        default=PROC_DIR / "regimes.csv",
+        default=str(PROC_DIR / "regimes_dataset.csv"),
         help="Path to save the output CSV.",
     )
     return p.parse_args()

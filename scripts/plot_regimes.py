@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.config import PROC_DIR
+from src.config import KMEANS_LABELS_PARQUET, PANEL_PARQUET, FIG_DIR
 from src.viz.plots import load_labeled_features, load_price_series, plot_price_with_regimes
 
 
@@ -16,13 +16,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--labels",
         type=Path,
-        default=PROC_DIR / "kmeans_labels.parquet",
+        default=str(KMEANS_LABELS_PARQUET),
         help="Path to labeled features parquet.",
     )
     p.add_argument(
         "--panel",
         type=Path,
-        default=PROC_DIR / "market_panel.parquet",
+        default=str(PANEL_PARQUET),
         help="Path to processed market panel parquet.",
     )
     p.add_argument(
@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--out",
         type=Path,
-        default=PROC_DIR / "regimes_plot.png",
+        default= FIG_DIR / "regimes_plot.png",
         help="Path to save the output PNG. If omitted, the plot is shown.",
     )
     return p.parse_args()

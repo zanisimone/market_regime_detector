@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.config import PROC_DIR
+from src.config import FEATURES_PARQUET, KMEANS_LABELS_PARQUET, KMEANS_CENTERS_CSV, KMEANS_MODEL_PKL
 from src.models.kmeans import run_kmeans
 
 
@@ -18,19 +18,19 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--features",
         type=Path,
-        default=PROC_DIR / "features_custom.parquet",
+        default=str(FEATURES_PARQUET),
         help="Path to features parquet.",
     )
     p.add_argument(
         "--out-labels",
         type=Path,
-        default=PROC_DIR / "kmeans_labels.parquet",
+        default=str(KMEANS_LABELS_PARQUET),
         help="Path to save labeled features parquet.",
     )
     p.add_argument(
         "--out-centers",
         type=Path,
-        default=PROC_DIR / "kmeans_centers.csv",
+        default=str(KMEANS_CENTERS_CSV),
         help="Path to save cluster centers CSV.",
     )
     p.add_argument(

@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 
 from src.features.build_features import build_features
+from src.config import PANEL_PARQUET, FEATURES_PARQUET
 
 
 def parse_args() -> argparse.Namespace:
@@ -12,8 +13,8 @@ def parse_args() -> argparse.Namespace:
     Parse CLI arguments for the feature building script.
     """
     p = argparse.ArgumentParser(description="Build standardized features for market regime detection.")
-    p.add_argument("--panel", type=Path, default='data/processed/market_panel.parquet', help="Path to processed panel parquet.")
-    p.add_argument("--out", type=Path, default='data/processed/features_custom.parquet', help="Path to save features parquet.")
+    p.add_argument("--panel", type=Path, default=str(PANEL_PARQUET), help="Path to processed panel parquet.")
+    p.add_argument("--out", type=Path, default=str(FEATURES_PARQUET), help="Path to save features parquet.")
     return p.parse_args()
 
 

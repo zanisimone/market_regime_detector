@@ -1,27 +1,36 @@
 # src/config.py
 from __future__ import annotations
-
-from datetime import date
 from pathlib import Path
+from datetime import date
 
-# Directories
-DATA_DIR = Path("data")
+# Root del progetto (puoi adeguarla se usi un layout diverso)
+ROOT = Path(__file__).resolve().parents[1]
+
+DATA_DIR = ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROC_DIR = DATA_DIR / "processed"
+EXT_DIR = DATA_DIR / "external"
+FIG_DIR = ROOT / "figures"
 
-# Date range
-START_DATE = "2015-01-01"
-END_DATE = date.today().isoformat()
+# Default date window (puoi cambiare)
+DEFAULT_START = "2005-01-01"
+DEFAULT_END = date.today().isoformat()
 
-# Yahoo Finance tickers (alias: ticker)
+# Mapping alias -> ticker / serie
 YAHOO_TICKERS = {
-    "SPX": "^GSPC",   # S&P 500 Index
-    "VIX": "^VIX",    # Volatility Index
-    "TLT": "TLT",     # Long-term Treasury ETF (optional)
+    "SPX": "^GSPC",
+    "VIX": "^VIX",
+    "TLT": "TLT",
 }
 
-# FRED series (alias: series_id)
 FRED_SERIES = {
-    "US10Y": "DGS10",  # 10-Year Treasury Constant Maturity Rate
-    "US2Y": "DGS2",    # 2-Year Treasury Constant Maturity Rate
+    "US10Y": "DGS10",
+    "US2Y": "DGS2",
 }
+
+# File standard
+PANEL_PARQUET = PROC_DIR / "market_panel.parquet"
+FEATURES_PARQUET = PROC_DIR / "features.parquet"
+KMEANS_LABELS_PARQUET = PROC_DIR / "kmeans_labels.parquet"
+KMEANS_CENTERS_CSV = PROC_DIR / "kmeans_centers.csv"
+KMEANS_MODEL_PKL = PROC_DIR / "kmeans_model.pkl"  # opzionale: salvataggio modello
