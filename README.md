@@ -66,8 +66,9 @@ market_regime_detector/
 │       └── plots.py       # Visualization utilities
 │
 └── README.md
+```
 
-## ⚙️ End-to-End Workflow
+## End-to-End Workflow
 
 ### Fetch market and macro data  
 Download historical series from:  
