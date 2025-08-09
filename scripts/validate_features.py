@@ -1,51 +1,45 @@
-# scripts/validate_features.py
+#!/usr/bin/env python3
 from __future__ import annotations
-
 import argparse
 from pathlib import Path
 
-import pandas as pd
-
-from src.config import PROC_DIR
-from src.data.utils import panel_quality_report
-
-
-def parse_args() -> argparse.Namespace:
+def _import_validate():
     """
-    Parse CLI arguments for the features validation script.
+    Import validate_and_report from either src.validation or src.reporting.validate.
     """
-    p = argparse.ArgumentParser(description="Validate the features DataFrame and print summary statistics.")
-    p.add_argument(
-        "--features",
-        type=Path,
-        default=PROC_DIR / "features_custom.parquet",
-        help="Path to the features parquet file.",
-    )
-    return p.parse_args()
-
+    try:
+        from src.validation.validation import validate_and_report  # type: ignore
+        return validate_and_report
+    except Exception:
+        from src.reporting.validate import validate_and_report  # type: ignore
+        return validate_and_report
 
 def main() -> None:
     """
-    Load the features file, print summary, first/last valid dates, and NaN report.
+    CLI entry point for the validation and monitoring mini-report.
     """
-    args = parse_args()
-    df = pd.read_parquet(args.features)
+    ap = argparse.ArgumentParser(description="Validate features, monitor drift, and export a mini-report.")
+    ap.add_argument("--features", type=str, default="data/processed/features.parquet", help="Path to features parquet.")
+    ap.add_argument("--out-dir", type=str, default="reports/feature_report", help="Output directory for the report.")
+    ap.add_argument("--split-date", type=str, default=None, help="Calendar split date 'YYYY-MM-DD'.")
+    ap.add_argument("--split-ratio", type=float, default=None, help="Train ratio in (0,1); used if --split-date is not provided.")
+    ap.add_argument("--adf", action="store_true", default=False, help="Run ADF stationarity test if statsmodels is available.")
+    ap.add_argument("--roll-window", type=int, default=126, help="Rolling window for OOS vs Train comparison.")
+    args = ap.parse_args()
 
-    print("=== Features summary ===")
-    print(f"path: {args.features}")
-    print(f"shape: {df.shape[0]} rows x {df.shape[1]} cols")
-    print(f"date range: {df.index.min()} -> {df.index.max()}")
-    print(f"columns: {list(df.columns)}\n")
+    validate_and_report = _import_validate()
 
-    print("=== First/Last valid per column ===")
-    first = df.apply(lambda s: s.first_valid_index())
-    last = df.apply(lambda s: s.last_valid_index())
-    print(pd.DataFrame({"first_valid": first, "last_valid": last}))
-    print()
-
-    print("=== Quality report ===")
-    print(panel_quality_report(df).sort_values("pct_na", ascending=False))
-
+    out = validate_and_report(
+        features_path=Path(args.features),
+        out_dir=Path(args.out_dir),
+        split_date=args.split_date,
+        split_ratio=args.split_ratio if args.split_date is None else None,
+        run_adf=bool(args.adf),
+        rolling_cmp_window=int(args.roll_window),
+    )
+    print("[OK] Validation report created.")
+    print(f"[INFO] Summary: {out['summary']}")
+    print(f"[INFO] Artifacts saved under: {args.out_dir}")
 
 if __name__ == "__main__":
     main()

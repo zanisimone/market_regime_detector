@@ -4,4 +4,4 @@ numpy
 fredapi
 python-dotenv
 pyarrow
-sklearn
+scikit-learn
