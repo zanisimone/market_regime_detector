@@ -39,7 +39,7 @@ def main() -> None:
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
-    train_labels_path, test_labels_path, model_path, centers_path = run_kmeans_split(
+    train_labels_path, test_labels_path, model_path, centers_path, labels_csv_path = run_kmeans_split(
         features_path=Path(args.features),
         out_dir=out_dir,
         train_start=args.train_start,

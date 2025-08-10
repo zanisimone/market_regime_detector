@@ -5,3 +5,5 @@ fredapi
 python-dotenv
 pyarrow
 scikit-learn
+streamlit
+seaborn

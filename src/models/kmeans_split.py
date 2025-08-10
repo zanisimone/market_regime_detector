@@ -15,35 +15,15 @@ def run_kmeans_split(
     k: int = 3,
     random_state: int = 42,
     n_init: int = 20,
-) -> Tuple[Path, Path, Path, Path]:
+) -> Tuple[Path, Path, Path, Path, Path]:
     """
     Fit KMeans on a temporal train split and predict on the test split.
 
-    Parameters
-    ----------
-    features_path : Path
-        Path to standardized features parquet.
-    out_dir : Path
-        Output directory.
-    train_start : str
-        Training period start in YYYY-MM-DD.
-    train_end : str
-        Training period end in YYYY-MM-DD.
-    test_start : str
-        Test period start in YYYY-MM-DD.
-    test_end : str
-        Test period end in YYYY-MM-DD.
-    k : int, default 3
-        Number of clusters.
-    random_state : int, default 42
-        Random state for reproducibility.
-    n_init : int, default 20
-        Number of initializations.
-
     Returns
     -------
-    Tuple[Path, Path, Path, Path]
-        Paths to (train_labels.parquet, test_labels.parquet, kmeans_model.pkl, kmeans_centers.csv).
+    Tuple[Path, Path, Path, Path, Path]
+        Paths to (train_labels.parquet, test_labels.parquet,
+                  kmeans_model.pkl, kmeans_centers.csv, kmeans_labels.csv).
     """
     feats = pd.read_parquet(features_path)
     train_df = feats.loc[train_start:train_end].dropna()
@@ -66,4 +46,11 @@ def run_kmeans_split(
     joblib.dump(model, model_path)
     pd.DataFrame(model.cluster_centers_).to_csv(centers_path, index=False)
 
-    return train_labels_path, test_labels_path, model_path, centers_path
+    # ✅ NEW: create combined CSV for the app
+    labels_df = pd.concat([train_labels, test_labels]).sort_index().reset_index()
+    labels_df.rename(columns={"index": "date"}, inplace=True)
+    labels_csv_path = out_dir / "kmeans_labels.csv"
+    labels_df.to_csv(labels_csv_path, index=False)
+
+    return train_labels_path, test_labels_path, model_path, centers_path, labels_csv_path
+

@@ -1,0 +1,12 @@
+[symbols]
+benchmark = "SPX"
+price_col = "price"
+
+[features]
+standardize = "rolling"
+window = 252
+
+[clustering]
+algo = "kmeans"
+n_clusters = 3
+random_state = 42
