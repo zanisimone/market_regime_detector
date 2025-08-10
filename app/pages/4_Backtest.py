@@ -10,6 +10,8 @@ import streamlit as st
 import pandas as pd
 from app.utils import project_root
 from app.components.kpi_cards import kpi_row
+from app.components.regime_info import load_regime_catalog, show_regime_info, label_for
+
 
 # ---------- helpers ----------
 def _find_date_col(df: pd.DataFrame) -> pd.DataFrame:
@@ -131,6 +133,13 @@ def _kpis(eq: pd.Series) -> tuple[float, float, float]:
 # ---------- page ----------
 def main():
     st.title("🧪 Backtest")
+
+    catalog = load_regime_catalog()
+    st.sidebar.markdown("### Regimes")
+    with st.sidebar:
+        show_regime_info(catalog)
+
+
     try:
         df = _load_joined()
     except Exception as e:

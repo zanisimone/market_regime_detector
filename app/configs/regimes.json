@@ -1,0 +1,5 @@
+{
+  "0": {"name": "Risk-Off", "desc": "High volatility, deleveraging, flight to quality."},
+  "1": {"name": "Risk-On (Steepening)", "desc": "Growth-led rally with curve steepening."},
+  "2": {"name": "Risk-On (Inverted Curve)", "desc": "Liquidity-led rally with inverted curve."}
+}

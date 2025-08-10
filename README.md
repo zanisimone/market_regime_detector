@@ -20,6 +20,60 @@ Beyond clustering, the framework includes:
 - Benchmark regime‑aware strategies versus buy‑and‑hold.
 
 
+---
+
+## Streamlit App
+
+An interactive dashboard is included to explore **data**, **features**, **regimes**, **KPIs**, and **backtests** end-to-end.
+
+### App pages (sidebar)
+- **Home** — overview, run status, quick links.
+- **1 · Data & Features** — load merged market/macro data, run feature engineering (`build_features`) directly in the app, inspect panels & distributions.
+- **2 · Clustering** — run and visualize regime detection models.
+- **3 · Regime Explorer** — inspect regime sequences, transitions, and statistics.
+- **4 · Backtest** — apply allocation rules by regime, run a vectorized backtest, and compare against benchmarks.
+
+---
+
+### **MVP Limitations**
+- **Data fetching is not available in the app** — you must run:
+  ```bash
+  python scripts/fetch_data.py
+  ```
+  
+before launching Streamlit.
+
+Feature engineering (`build_features.py`) can be run from inside the app (page **1 · Data & Features**).
+
+Only **K-Means Split** is currently supported for in-app model execution.
+
+---
+
+### How to launch
+```bash
+# from the repository root
+streamlit run app/app.py
+# or open a specific page
+streamlit run app/pages/4_Backtest.py
+```
+
+### App prerequisites
+- Ensure you have run `fetch_data.py` so that `data/processed/` contains the required market/macro dataset.
+- Generate at least one **labels** file (e.g., `reports/labels_kmeans_split.csv`) to unlock Regime Explorer and Backtest tabs.
+
+### Optional configuration
+Create a `.env` in repo root if you need credentials/keys (e.g., FRED API) or want to override defaults:
+```bash
+FRED_API_KEY=xxxxxxxxxxxxxxxx
+APP_DATA_DIR=data
+APP_REPORTS_DIR=reports
+```
+
+### Troubleshooting
+- **ModuleNotFoundError: No module named 'src'**  
+  Set `PYTHONPATH` to project root before launching:
+  - PowerShell: `$env:PYTHONPATH=(Get-Location)`
+  - bash/zsh: `export PYTHONPATH=$(pwd)`
 
 ---
 
@@ -41,8 +95,54 @@ With the extended framework, you can now:
 - **Diagnose** and compare model outputs with agreement matrices, composites, and feature contribution analysis.
 - **Implement** simple allocation rules and **backtest** them against benchmarks in a vectorized, fast workflow.
 
+---
 
-### Main regimes in the current model
+## Supported Models & Training Modes
+
+The framework supports three unsupervised learning algorithms for market regime detection:
+
+### 1. K-Means
+- **Type:** Hard clustering, distance-based.
+- **Mechanics:** Partitions feature space into `n_clusters` by minimizing within-cluster variance.
+- **Pros:** Fast, simple, interpretable centers; works well when clusters are roughly spherical in feature space.
+- **Cons:** Assumes equal variance and similar cluster size; no probabilistic output.
+
+### 2. Gaussian Mixture Models (GMM)
+- **Type:** Soft clustering, probabilistic.
+- **Mechanics:** Models data as a mixture of Gaussian distributions; assigns each point a probability of belonging to each regime.
+- **Pros:** Flexible cluster shapes; provides regime probabilities; can capture overlapping regimes.
+- **Cons:** More computationally intensive; can overfit with small sample sizes or many features.
+
+### 3. Hidden Markov Models (HMM)
+- **Type:** Probabilistic sequence model.
+- **Mechanics:** Assumes the market moves through hidden states (regimes) with Markov transition probabilities; emits observed features from state-specific distributions.
+- **Pros:** Captures temporal dependencies; explicit transition probabilities; well-suited for regime persistence analysis.
+- **Cons:** Higher complexity; requires careful initialization; sensitive to model specification.
+
+---
+
+### Training Modes
+
+**Split Mode**
+- Fit the model once on a designated training window.
+- Apply the trained model to label the entire dataset.
+- Pros: Stable regime definitions; good for historical regime mapping.
+- Cons: Does not adapt to structural changes after the training period.
+
+**Rolling Mode**
+- Refit the model on a moving window (e.g., last 2 years) at each step.
+- Produces time-adaptive regimes that can capture evolving market structures.
+- Pros: More responsive to new patterns; useful for live regime tracking.
+- Cons: Higher computation; regime definitions can drift over time.
+---
+
+> **Current MVP limitation:**  
+> From the Streamlit app, you can currently launch only the **K-Means Split** model.  
+> Data fetching is **not** available directly in the app — you must run `scripts/fetch_data.py` and `scripts/build_features.py` before accessing the UI.
+
+---
+
+## Main regimes in the current model
 
 The framework supports multiple algorithms — **K-Means**, **Gaussian Mixture Models (GMM)**, and **Hidden Markov Models (HMM)** — each capable of discovering market regimes from macro-financial features.  
 The examples below come from the default **K-Means** configuration with three regimes, but results will vary depending on:
@@ -73,70 +173,73 @@ The examples below come from the default **K-Means** configuration with three re
 ## Project Structure
 
 ```plaintext
+## Project Structure
+
+```plaintext
 market_regime_detector/
 │
+├── app/                          # Streamlit dashboard
+│   ├── app.py                     # Main Streamlit entrypoint
+│   ├── utils.py                   # App-specific helper functions
+│   ├── __init__.py
+│   │
+│   ├── components/                # Reusable UI components
+│   │   ├── kpi_cards.py           # KPI display cards
+│   │   ├── regime_info.py         # Info popups/descriptions for regimes
+│   │   └── regime_timeline.py     # Timeline visualization of regimes
+│   │
+│   ├── configs/                   # App configuration files
+│   │   ├── app.defaults.toml      # Default app parameters
+│   │   └── regimes.json           # Human-readable regime definitions
+│   │
+│   └── pages/                     # Multi-page Streamlit app
+│       ├── 1_Data_and_Features.py # Data inspection + run build_features
+│       ├── 2_Clustering.py        # Model execution & clustering results (MVP: KMeans Split only)
+│       ├── 3_Regime_Explorer.py   # Explore regime sequences, KPIs, transitions
+│       └── 4_Backtest.py          # Regime-aware backtesting
+│
 ├── data/
-│   ├── raw/                     # Raw data from Yahoo Finance, FRED, or other providers
-│   ├── processed/               # Cleaned, merged datasets and feature panels
-│   └── external/                 # Optional datasets (e.g., credit spreads, FX indices)
+│   ├── raw/                       # Raw market/macro data from Yahoo, FRED, etc.
+│   ├── processed/                 # Cleaned datasets & feature panels
+│   └── external/                  # Optional external datasets (credit spreads, FX, etc.)
 │
-├── notebooks/                   # Exploratory analysis & prototyping
+├── reports/                       # Outputs (labels, KPIs, composites, backtests)
 │
-├── scripts/                     # CLI scripts for each major pipeline step
-│   ├── fetch_data.py             # Download and merge data from Yahoo & FRED
-│   ├── build_features.py         # Compute features (returns, volatility, slope, momentum)
-│   ├── run_kmeans.py             # Run K-Means clustering
-│   ├── run_kmeans_split.py       # K-Means split mode
-│   ├── run_kmeans_rolling.py     # K-Means rolling mode
-│   ├── run_gmm_split.py          # GMM split mode
-│   ├── run_gmm_rolling.py        # GMM rolling mode
-│   ├── run_hmm_split.py          # HMM split mode
-│   ├── run_hmm_rolling.py        # HMM rolling mode
-│   ├── plot_regimes.py           # Visualize price series with regime coloring
-│   ├── export_regimes.py         # Export full regimes dataset to CSV
-│   ├── export_regime_transitions.py # Export regime change dates only
-│   ├── run_transition_kpis.py    # Compute transition matrix, stationary dist, dwell-time KPIs
-│   ├── run_early_warning.py      # Generate early-warning signals from Risk-Off probability
-│   ├── run_agreement.py          # Compare model outputs (agreement matrices, Jaccard index)
-│   ├── run_composites.py         # Build per-regime normalized price path composites
-│   ├── run_center_explorer.py    # Inspect cluster centers & feature contributions
-│   └── run_allocation_backtest.py# Regime-based allocation backtest and performance report
+├── notebooks/                     # Exploratory notebooks
 │
-├── src/
-│   ├── config.py                 # Global configuration
-│   ├── data/                     # Data ingestion modules
-│   │   ├── yahoo.py
-│   │   ├── fred.py
-│   │   ├── utils.py
-│   │   └── ingest.py
-│   ├── features/                 # Feature engineering
-│   │   └── features.py
-│   ├── models/                   # Model implementations
-│   │   ├── kmeans.py
-│   │   ├── kmeans_split.py
-│   │   ├── kmeans_rolling.py
-│   │   ├── gmm_split.py
-│   │   ├── gmm_rolling.py
-│   │   ├── hmm_split.py
-│   │   └── hmm_rolling.py
-│   ├── regime/                   # Regime transition & stability analysis
-│   │   ├── transition.py
-│   │   └── stability.py
-│   ├── alerts/                   # Early-warning signal generation
-│   │   └── early_warning.py
-│   ├── reporting/                # Reporting & diagnostics
-│   │   ├── agreement.py
-│   │   ├── composites.py
-│   │   ├── centers.py
-│   │   └── performance.py
-│   ├── backtest/                 # Vectorized backtesting
-│   │   └── vectorized.py
-│   ├── strategy/                 # Allocation rules & hooks
-│   │   └── hooks.py
-│   └── viz/                      # Visualization utilities
-│       └── plots.py
+├── scripts/                       # CLI scripts for pipeline steps
+│   ├── fetch_data.py               # Download & merge market/macro data
+│   ├── build_features.py           # Feature engineering (callable from app)
+│   ├── run_kmeans_split.py         # K-Means Split mode (only model available in-app for MVP)
+│   ├── run_kmeans_rolling.py       # K-Means Rolling mode
+│   ├── run_gmm_split.py            # GMM Split mode
+│   ├── run_gmm_rolling.py          # GMM Rolling mode
+│   ├── run_hmm_split.py            # HMM Split mode
+│   ├── run_hmm_rolling.py          # HMM Rolling mode
+│   ├── plot_regimes.py             # Plot price series with regime coloring
+│   ├── export_regimes.py           # Export regimes to CSV
+│   ├── export_regime_transitions.py# Export regime change dates
+│   ├── run_transition_kpis.py      # Compute transition matrix, stationary dist, dwell times
+│   ├── run_early_warning.py        # Early-warning signals for Risk-Off
+│   ├── run_agreement.py            # Compare model/split agreement
+│   ├── run_composites.py           # Per-regime price path composites
+│   ├── run_center_explorer.py      # Inspect cluster centers & top features
+│   └── run_allocation_backtest.py  # Regime-aware allocation backtest
+│
+├── src/                            # Core Python package
+│   ├── config.py
+│   ├── data/
+│   ├── features/
+│   ├── models/
+│   ├── regime/
+│   ├── alerts/
+│   ├── reporting/
+│   ├── backtest/
+│   ├── strategy/
+│   └── viz/
 │
 └── README.md
+
 ```
 
 

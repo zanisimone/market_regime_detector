@@ -11,6 +11,8 @@ import pandas as pd
 from app.utils import project_root
 from app.components.regime_timeline import plot as plot_timeline
 from app.components.kpi_cards import kpi_row
+from app.components.regime_info import load_regime_catalog, show_regime_info, label_for
+
 
 # --------- helpers ---------
 def _find_date_col(df: pd.DataFrame) -> pd.DataFrame:
@@ -135,24 +137,30 @@ def _load_joined() -> pd.DataFrame:
     return df
 
 
-def _regime_kpis(df: pd.DataFrame):
-    """Compute simple per-regime total return proxy (CAGR-like over sample)."""
+def _regime_kpis(df: pd.DataFrame, catalog):
     out = []
-    # daily returns
     df = df.copy()
     df["ret"] = df["price"].pct_change().fillna(0)
     for r, g in df.groupby("regime"):
         total = (1 + g["ret"]).prod() - 1.0
         out.append({
-            "label": f"Regime {int(r)} Total Return",
+            "label": f"{label_for(int(r), catalog)} Total Return",
             "value": f"{total*100:.2f}%",
             "help": "Compounded return over the selected sample for days classified in this regime.",
         })
     return out
 
+
 # --------- page ---------
 def main():
     st.title("📊 Regime Explorer")
+
+    catalog = load_regime_catalog()
+    st.sidebar.markdown("### Regimes")
+    with st.sidebar:
+        show_regime_info(catalog)
+
+
     try:
         df = _load_joined()
     except Exception as e:
@@ -169,7 +177,8 @@ def main():
 
     # Plot timeline and KPIs
     plot_timeline(df, date_col="date", y_col="price", regime_col="regime")
-    kpi_row(_regime_kpis(df))
+    kpi_row(_regime_kpis(df, catalog))
+
 
     # Download + preview
     st.download_button("Download current view (CSV)", df.to_csv(index=False).encode(),

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
+
 # --- sys.path bootstrap (page) ---
 import sys
 from pathlib import Path
@@ -11,6 +12,8 @@ if str(ROOT) not in sys.path:
 # ---------------------------------
 
 from app.utils import project_root
+from app.components.regime_info import load_regime_catalog, show_regime_info
+
 
 def _paths():
     """Return input/output paths relevant to clustering."""
@@ -41,6 +44,12 @@ def _run_kmeans_split(train_start, train_end, test_start, test_end, n_clusters, 
 def main():
     """Clustering page."""
     st.title("🔍 Clustering")
+
+    catalog = load_regime_catalog()
+    right_info = st.columns([1, 1, 1])[-1]  # col destra rapida
+    with right_info:
+        show_regime_info(catalog)
+
     p = _paths()
 
     with st.form("kmeans_form"):
