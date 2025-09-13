@@ -81,11 +81,19 @@ class ModelSelector:
         # Create selection mapping
         display_to_model = {display: model for display, model in options}
         
+        # Find default index
+        default_index = 0
+        if default_selection:
+            for i, (display, model) in enumerate(options):
+                if model == default_selection:
+                    default_index = i
+                    break
+        
         # Render selector
         selected_display = st.selectbox(
             "Select Model:",
             options=[opt[0] for opt in options],
-            index=options.index(([opt[0] for opt in options if opt[1] == default_selection][0], default_selection)) if default_selection else 0,
+            index=default_index,
             key=f"{key}_selectbox",
             help="Choose a clustering model to visualize"
         )
