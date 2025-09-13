@@ -9,7 +9,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 # ---------------------------------
 
-from app.utils import project_root
+from app.app_config import project_root
+from app.utils import initialize_session_state, set_selected_model
 from app.components.regime_info import load_regime_catalog, show_regime_info
 from app.components.clustering import (
     AlgorithmSelector, 
@@ -23,6 +24,9 @@ from app.components.clustering import (
 def main():
     """Enhanced clustering page with full algorithm support."""
     st.title("🔍 Clustering")
+
+    # Initialize session state
+    initialize_session_state()
 
     # Initialize components
     algorithm_selector = AlgorithmSelector()
@@ -93,6 +97,11 @@ def main():
                     if success:
                         st.session_state[f"results_{selected_algorithm}_{selected_mode}"] = results
                         st.success("✅ Algorithm executed successfully!")
+                        
+                        # Save the just-run model to session state for page 3
+                        model_name = f"{selected_algorithm}_{selected_mode}"
+                        set_selected_model(model_name)
+                        st.session_state["last_run_model"] = model_name
                     else:
                         st.error("❌ Algorithm execution failed")
         

@@ -14,7 +14,7 @@ import zipfile
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import date
-from app.utils import project_root
+from app.app_config import project_root
 
 def _paths():
     """Return canonical file paths used by the page."""

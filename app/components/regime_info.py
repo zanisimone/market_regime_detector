@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 import streamlit as st
-from app.utils import project_root
+from app.app_config import project_root
 
 # Default catalog if no config is provided
 DEFAULT_REGIMES = {

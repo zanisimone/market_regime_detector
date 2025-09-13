@@ -8,10 +8,20 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st
 import pandas as pd
-from app.utils import project_root
+from app.app_config import project_root
+from app.utils import (
+    initialize_session_state, 
+    get_available_models_from_session,
+    get_selected_model,
+    set_selected_model,
+    get_default_model_for_page3,
+    load_model_labels,
+    get_model_info
+)
 from app.components.regime_timeline import plot as plot_timeline
 from app.components.kpi_cards import kpi_row
 from app.components.regime_info import load_regime_catalog, show_regime_info, label_for
+from app.components.model_selector import render_compact_model_selector
 
 
 # --------- helpers ---------
@@ -128,11 +138,16 @@ def _load_price_panel() -> pd.DataFrame:
     )
 
 
-def _load_joined() -> pd.DataFrame:
-    """Load joined price + labels with 'date', 'price', 'regime'."""
+def _load_joined(selected_model: str) -> pd.DataFrame:
+    """Load joined price + labels with 'date', 'price', 'regime' for selected model."""
     root = project_root()
     price = _load_price_panel()
-    labels = _load_labels_csv(root / "reports" / "kmeans_labels.csv")
+    
+    # Load labels using the new model management system
+    labels = load_model_labels(selected_model)
+    if labels is None:
+        raise ValueError(f"Could not load labels for model: {selected_model}")
+    
     df = price.merge(labels, on="date", how="inner").sort_values("date")
     return df
 
@@ -155,34 +170,103 @@ def _regime_kpis(df: pd.DataFrame, catalog):
 def main():
     st.title("📊 Regime Explorer")
 
+    # Initialize session state
+    initialize_session_state()
+
+    # Load regime catalog
     catalog = load_regime_catalog()
+    
+    # Sidebar with regime info
     st.sidebar.markdown("### Regimes")
     with st.sidebar:
         show_regime_info(catalog)
 
-
+    # Model selection section
+    st.header("🔍 Model Selection")
+    
+    # Get available models
+    available_models = get_available_models_from_session()
+    
+    if not available_models:
+        st.error("❌ No models found. Please run some clustering algorithms first.")
+        st.info("Go to the **Clustering** page to train models.")
+        return
+    
+    # Get default model (from page 2 or first available)
+    default_model = get_default_model_for_page3()
+    if default_model not in available_models:
+        default_model = available_models[0]
+    
+    # Model selector
+    selected_model = render_compact_model_selector(
+        key="model_selector",
+        default_model=default_model
+    )
+    
+    # Update session state when model changes
+    if selected_model and selected_model != get_selected_model():
+        set_selected_model(selected_model)
+    
+    # Display model info
+    if selected_model:
+        model_info = get_model_info(selected_model)
+        if model_info:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Algorithm", model_info.algorithm.upper())
+            with col2:
+                st.metric("Mode", model_info.mode.title())
+            with col3:
+                st.metric("Regimes", model_info.num_regimes)
+            with col4:
+                st.metric("Date Range", f"{model_info.date_range[0]} to {model_info.date_range[1]}")
+    
+    # Load and display data
     try:
-        df = _load_joined()
+        df = _load_joined(selected_model)
+        
+        if df.empty:
+            st.warning("⚠️ No data available for the selected model and date range.")
+            return
+            
     except Exception as e:
-        st.error(f"Could not load data: {e}")
+        st.error(f"❌ Could not load data: {e}")
         return
 
     # Date range filter
-    c1, c2 = st.columns([3, 1])
-    with c2:
+    st.header("📅 Date Range Filter")
+    col1, col2 = st.columns([3, 1])
+    with col2:
         min_d, max_d = df["date"].min(), df["date"].max()
         date_range = st.date_input("Date range", (min_d.date(), max_d.date()))
+    
     if isinstance(date_range, tuple):
         df = df[(df["date"] >= pd.Timestamp(date_range[0])) & (df["date"] <= pd.Timestamp(date_range[1]))]
 
-    # Plot timeline and KPIs
+    # Visualization section
+    st.header("📈 Regime Timeline")
     plot_timeline(df, date_col="date", y_col="price", regime_col="regime")
+    
+    # KPI section
+    st.header("📊 Performance Metrics")
     kpi_row(_regime_kpis(df, catalog))
 
-
+    # Data section
+    st.header("📋 Data Preview")
+    
     # Download + preview
-    st.download_button("Download current view (CSV)", df.to_csv(index=False).encode(),
-                       file_name="regime_view.csv", mime="text/csv")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.download_button(
+            "📥 Download current view (CSV)", 
+            df.to_csv(index=False).encode(),
+            file_name=f"regime_view_{selected_model}.csv", 
+            mime="text/csv"
+        )
+    
+    with col2:
+        st.info(f"Showing {len(df)} observations for model: **{selected_model}**")
+    
     st.dataframe(df.tail(300), use_container_width=True)
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import load_defaults
+from app_config import load_defaults
 
 def _init_page():
     """Set basic page config and global style."""

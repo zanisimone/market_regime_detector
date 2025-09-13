@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st
 import pandas as pd
-from app.utils import project_root
+from app.app_config import project_root
 from app.components.kpi_cards import kpi_row
 from app.components.regime_info import load_regime_catalog, show_regime_info, label_for
 
