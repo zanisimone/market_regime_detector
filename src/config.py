@@ -10,6 +10,7 @@ RAW_DIR = DATA_DIR / "raw"
 PROC_DIR = DATA_DIR / "processed"
 EXT_DIR = DATA_DIR / "external"
 FIG_DIR = ROOT / "figures"
+REPORTS_DIR = ROOT / "reports"
 
 # Default date window
 DEFAULT_START = "2005-01-01"

@@ -7,7 +7,7 @@ def main() -> None:
     """
     CLI entry point for HMM rolling backtest with reporting.
     """
-    from src.config import FEATURES_PARQUET, PROC_DIR, PANEL_PARQUET
+    from src.config import FEATURES_PARQUET, PROC_DIR, PANEL_PARQUET, REPORTS_DIR
     from src.models.hmm_rolling import run_hmm_rolling
     from src.eval.report import regime_report
 
@@ -15,6 +15,7 @@ def main() -> None:
     ap.add_argument("--features", type=str, default=str(FEATURES_PARQUET))
     ap.add_argument("--panel", type=str, default=str(PANEL_PARQUET))
     ap.add_argument("--out-dir", type=str, default=str(PROC_DIR / "hmm_rolling"))
+    ap.add_argument("--reports-dir", type=str, default=str(REPORTS_DIR / "hmm_rolling"))
     ap.add_argument("--start", type=str, required=True)
     ap.add_argument("--end", type=str, required=True)
     ap.add_argument("--lookback-days", type=int, default=504)
@@ -28,9 +29,15 @@ def main() -> None:
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
+    reports_dir = Path(args.reports_dir)
+    
+    # Create reports directory
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create files directly in reports directory (no data/processed)
     labels_path, schedule_path = run_hmm_rolling(
         features_path=Path(args.features),
-        out_dir=out_dir,
+        out_dir=reports_dir,  # Create directly in reports_dir
         start=args.start,
         end=args.end,
         lookback_days=args.lookback_days,
@@ -46,12 +53,14 @@ def main() -> None:
     labels = pd.read_parquet(labels_path)
     rpt = regime_report(panel, labels, price_col=args.price_col)
 
-    rpt.per_regime.to_csv(out_dir / "rolling_per_regime.csv", index=False)
-    rpt.overall.to_csv(out_dir / "rolling_overall.csv", index=False)
-    rpt.segments.to_csv(out_dir / "rolling_segments.csv", index=False)
+    # Save reports in reports directory
+    rpt.per_regime.to_csv(reports_dir / "rolling_per_regime.csv", index=False)
+    rpt.overall.to_csv(reports_dir / "rolling_overall.csv", index=False)
+    rpt.segments.to_csv(reports_dir / "rolling_segments.csv", index=False)
 
     print(f"labels   -> {labels_path}")
     print(f"schedule -> {schedule_path}")
+    print(f"reports  -> {reports_dir}")
 
     print("Note: HMM requires `pip install hmmlearn`.")
 

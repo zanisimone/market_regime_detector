@@ -20,7 +20,7 @@ def main() -> None:
         --test-start 2019-01-01 --test-end 2024-12-31 \
         --k 4 --price-col SPX
     """
-    from src.config import FEATURES_PARQUET, PROC_DIR, PANEL_PARQUET
+    from src.config import FEATURES_PARQUET, PROC_DIR, PANEL_PARQUET, REPORTS_DIR
     from src.models.kmeans_split import run_kmeans_split
     from src.eval.report import regime_report
 
@@ -28,6 +28,7 @@ def main() -> None:
     ap.add_argument("--features", type=str, default=str(FEATURES_PARQUET))
     ap.add_argument("--panel", type=str, default=str(PANEL_PARQUET))
     ap.add_argument("--out-dir", type=str, default=str(PROC_DIR / "kmeans_split"))
+    ap.add_argument("--reports-dir", type=str, default=str(REPORTS_DIR / "kmeans_split"))
     ap.add_argument("--train-start", type=str, required=True)
     ap.add_argument("--train-end", type=str, required=True)
     ap.add_argument("--test-start", type=str, required=True)
@@ -39,7 +40,12 @@ def main() -> None:
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
-    train_labels_path, test_labels_path, model_path, centers_path, labels_csv_path = run_kmeans_split(
+    reports_dir = Path(args.reports_dir)
+    
+    # Create reports directory
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    
+    train_labels_path, test_labels_path, model_path, centers_path = run_kmeans_split(
         features_path=Path(args.features),
         out_dir=out_dir,
         train_start=args.train_start,
@@ -58,17 +64,24 @@ def main() -> None:
     train_report = regime_report(panel, train_labels, price_col=args.price_col)
     test_report = regime_report(panel, test_labels, price_col=args.price_col)
 
-    train_report.per_regime.to_csv(out_dir / "train_per_regime.csv", index=False)
-    test_report.per_regime.to_csv(out_dir / "test_per_regime.csv", index=False)
-    train_report.overall.to_csv(out_dir / "train_overall.csv", index=False)
-    test_report.overall.to_csv(out_dir / "test_overall.csv", index=False)
-    train_report.segments.to_csv(out_dir / "train_segments.csv", index=False)
-    test_report.segments.to_csv(out_dir / "test_segments.csv", index=False)
+    # Create combined CSV for the app in reports directory
+    labels_df = pd.concat([train_labels, test_labels]).sort_index().reset_index()
+    labels_df.rename(columns={"index": "date"}, inplace=True)
+    labels_df.to_csv(reports_dir / "kmeans_labels.csv", index=False)
+    
+    # Save reports in reports directory
+    train_report.per_regime.to_csv(reports_dir / "train_per_regime.csv", index=False)
+    test_report.per_regime.to_csv(reports_dir / "test_per_regime.csv", index=False)
+    train_report.overall.to_csv(reports_dir / "train_overall.csv", index=False)
+    test_report.overall.to_csv(reports_dir / "test_overall.csv", index=False)
+    train_report.segments.to_csv(reports_dir / "train_segments.csv", index=False)
+    test_report.segments.to_csv(reports_dir / "test_segments.csv", index=False)
 
     print(f"train_labels -> {train_labels_path}")
     print(f"test_labels  -> {test_labels_path}")
     print(f"model        -> {model_path}")
     print(f"centers      -> {centers_path}")
+    print(f"reports      -> {reports_dir}")
 
 if __name__ == "__main__":
     """

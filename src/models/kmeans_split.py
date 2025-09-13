@@ -46,11 +46,6 @@ def run_kmeans_split(
     joblib.dump(model, model_path)
     pd.DataFrame(model.cluster_centers_).to_csv(centers_path, index=False)
 
-    # ✅ NEW: create combined CSV for the app
-    labels_df = pd.concat([train_labels, test_labels]).sort_index().reset_index()
-    labels_df.rename(columns={"index": "date"}, inplace=True)
-    labels_csv_path = out_dir / "kmeans_labels.csv"
-    labels_df.to_csv(labels_csv_path, index=False)
-
-    return train_labels_path, test_labels_path, model_path, centers_path, labels_csv_path
+    # Note: Combined CSV for the app is now created in the script, not in the model
+    return train_labels_path, test_labels_path, model_path, centers_path
 

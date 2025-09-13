@@ -7,3 +7,5 @@ pyarrow
 scikit-learn
 streamlit
 seaborn
+plotly
+hmmlearn

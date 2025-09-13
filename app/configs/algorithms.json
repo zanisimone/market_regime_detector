@@ -1,0 +1,141 @@
+{
+  "kmeans": {
+    "name": "K-Means",
+    "description": "Hard clustering with distance-based assignment. Fast and interpretable, works well when clusters are roughly spherical.",
+    "pros": ["Fast", "Simple", "Interpretable centers", "Works well with spherical clusters"],
+    "cons": ["Assumes equal variance", "Similar cluster sizes", "No probabilistic output"],
+    "parameters": {
+      "n_clusters": {
+        "type": "int", 
+        "min": 2, 
+        "max": 10, 
+        "default": 3,
+        "help": "Number of clusters to form"
+      },
+      "random_state": {
+        "type": "int", 
+        "min": 0, 
+        "max": 10000, 
+        "default": 42,
+        "help": "Random seed for reproducibility"
+      },
+      "n_init": {
+        "type": "int", 
+        "min": 1, 
+        "max": 50, 
+        "default": 20,
+        "help": "Number of centroid initializations"
+      }
+    },
+    "modes": ["split", "rolling"],
+    "script": "scripts.run_kmeans_split",
+    "rolling_script": "scripts.run_kmeans_rolling",
+    "output_files": {
+      "labels": ["train_labels.parquet", "test_labels.parquet"],
+      "centers": "kmeans_centers.csv", 
+      "model": "kmeans_model.pkl"
+    },
+    "reports_files": {
+      "labels": "kmeans_labels.csv",
+      "per_regime": "train_per_regime.csv",
+      "overall": "train_overall.csv",
+      "segments": "train_segments.csv"
+    }
+  },
+  "gmm": {
+    "name": "Gaussian Mixture Model",
+    "description": "Soft clustering with probabilistic assignment. Flexible cluster shapes and provides regime probabilities.",
+    "pros": ["Flexible shapes", "Probabilistic output", "Captures overlapping regimes", "Good for uncertainty"],
+    "cons": ["More complex", "Computationally intensive", "Can overfit", "Sensitive to initialization"],
+    "parameters": {
+      "n_components": {
+        "type": "int", 
+        "min": 2, 
+        "max": 10, 
+        "default": 3,
+        "help": "Number of mixture components"
+      },
+      "random_state": {
+        "type": "int", 
+        "min": 0, 
+        "max": 10000, 
+        "default": 42,
+        "help": "Random seed for reproducibility"
+      },
+      "n_init": {
+        "type": "int", 
+        "min": 1, 
+        "max": 50, 
+        "default": 5,
+        "help": "Number of initializations"
+      },
+      "covariance_type": {
+        "type": "select", 
+        "options": ["full", "tied", "diag", "spherical"], 
+        "default": "full",
+        "help": "Type of covariance parameters"
+      }
+    },
+    "modes": ["split", "rolling"],
+    "script": "scripts.run_gmm_split",
+    "rolling_script": "scripts.run_gmm_rolling",
+    "output_files": {
+      "labels": ["train_labels.parquet", "test_labels.parquet"],
+      "centers": "gmm_means.csv",
+      "model": "gmm_model.pkl"
+    },
+    "reports_files": {
+      "per_regime": "train_per_regime.csv",
+      "overall": "train_overall.csv",
+      "segments": "train_segments.csv"
+    }
+  },
+  "hmm": {
+    "name": "Hidden Markov Model",
+    "description": "Sequential modeling with temporal dependencies. Captures regime persistence and transition probabilities.",
+    "pros": ["Temporal dependencies", "Explicit transitions", "Regime persistence", "Good for sequences"],
+    "cons": ["Higher complexity", "Sensitive to initialization", "Requires careful tuning", "Computationally expensive"],
+    "parameters": {
+      "n_states": {
+        "type": "int", 
+        "min": 2, 
+        "max": 10, 
+        "default": 3,
+        "help": "Number of hidden states"
+      },
+      "random_state": {
+        "type": "int", 
+        "min": 0, 
+        "max": 10000, 
+        "default": 42,
+        "help": "Random seed for reproducibility"
+      },
+      "n_iter": {
+        "type": "int", 
+        "min": 50, 
+        "max": 1000, 
+        "default": 200,
+        "help": "Maximum EM iterations"
+      },
+      "covariance_type": {
+        "type": "select", 
+        "options": ["full", "tied", "diag", "spherical"], 
+        "default": "full",
+        "help": "Type of covariance parameters"
+      }
+    },
+    "modes": ["split", "rolling"],
+    "script": "scripts.run_hmm_split",
+    "rolling_script": "scripts.run_hmm_rolling",
+    "output_files": {
+      "labels": ["train_labels.parquet", "test_labels.parquet"],
+      "centers": "hmm_means.csv",
+      "model": "hmm_model.pkl"
+    },
+    "reports_files": {
+      "per_regime": "train_per_regime.csv",
+      "overall": "train_overall.csv",
+      "segments": "train_segments.csv"
+    }
+  }
+}
